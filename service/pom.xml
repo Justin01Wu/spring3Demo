@@ -102,14 +102,32 @@
             <scope>compile</scope>
         </dependency>
 
-		<!-- Hibernate Validator, it is needed for JSR303 -->
+		<!-- Hibernate Validator, it is needed for JSR303 
+		 Hibernate Validator is the Reference Implementation (RI) for Bean Validation, and GlassFish implements the EL JSR:  -->
 		<dependency>
 			<groupId>org.hibernate</groupId>
 			<artifactId>hibernate-validator</artifactId>
 			<version>5.1.2.Final</version>
 			<scope>runtime</scope>
-		</dependency>                    
-				
+		</dependency>       
+		
+		<!-- el API is needed by  hibernate-validator for tomcat 7- version -->
+
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>javax.el</artifactId>
+            <version>3.0.0</version>
+            <scope>runtime</scope>
+        </dependency>	
+        	
+		<!--
+		<dependency>
+			<groupId>org.glassfish.web</groupId>
+			<artifactId>el-impl</artifactId>
+			<version>2.2</version>
+			<scope>runtime</scope>
+		</dependency>
+				-->		
   </dependencies>
   
   	<build>
