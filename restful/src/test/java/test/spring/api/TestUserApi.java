@@ -1,10 +1,10 @@
 package test.spring.api;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.commons.httpclient.Cookie;
 import org.apache.commons.httpclient.HttpClient;
@@ -12,8 +12,6 @@ import org.apache.commons.httpclient.HttpException;
 import org.apache.commons.httpclient.HttpState;
 import org.apache.commons.httpclient.methods.GetMethod;
 import org.apache.commons.io.FileUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -22,7 +20,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
-import com.jayway.restassured.path.json.JsonPath;
+import com.jayway.jsonpath.Configuration;
+import com.jayway.jsonpath.JsonPath;
 
 /** 
  * it comes from http://springinpractice.com/2012/04/08/sending-cookies-with-resttemplate
@@ -84,7 +83,7 @@ public class TestUserApi {
 		requestHeaders.add("Cookie", "JSESSIONID="+ sessionId );
 		
 		HttpEntity requestEntity = new HttpEntity(null, requestHeaders);
-		ResponseEntity response = restTemplate.exchange(
+		ResponseEntity<String> response = restTemplate.exchange(
 		    url,
 		    HttpMethod.GET,
 		    requestEntity,
@@ -96,21 +95,19 @@ public class TestUserApi {
 		String body = (String)response.getBody();
 		
 		System.out.println(body);
-		ObjectMapper objectMapper = new ObjectMapper();
-		try {
-			@SuppressWarnings("unused")
-			JsonNode jsonNode = objectMapper.readTree(body);
-		} catch (IOException e) {
-			fail("response is not a json string");
-		}
 		
-		String name = JsonPath.from(body).get("$[1].username");
-		System.out.println(name);
+		Object document = Configuration.defaultConfiguration().jsonProvider().parse(body);
+		
+		List<String> userName = JsonPath.read(document, "$.[?(@.userId==2)].username");
+		
+		assertEquals(userName.size(), 1);
+		assertEquals(userName.get(0), "lixin");
+		
+		System.out.println("userName= " + userName);
 	}
 	
-	//@Test
-	public void testJson(){
-		
+	@Test
+	public void testJson(){		
 		
 		String json ="{store: "
 				+ "{    book: ["
@@ -135,24 +132,20 @@ public class TestUserApi {
 				+ " expensive: 10"
 				+ "}";
 		
-		String json2 ="{\"store\": \"qqq\", \"expensive\": 10}";
+		Object document = Configuration.defaultConfiguration().jsonProvider().parse(json);
 		
-		String category = JsonPath.from(json2).get("store");
-		System.out.println(category);
+		String author0 = JsonPath.read(document, "$.store.book[0].author");
+		List<String> category = JsonPath.read(document, "store.book[?(@.author=='Nigel Rees')].category");
+
+		System.out.println("author0= " + author0);
+		System.out.println("category= " + category);
+		
+		assertEquals(author0, "Nigel Rees");
+
+		assertEquals(category.size(), 1);
+		assertEquals(category.get(0), "reference");
+
 	}
-	
-	//@Test
-	public void testJsonFromFile() throws IOException{
-		
-		
-		String jsonFilePath = "C:\\TEMP\\allUser.json";
-		
-		File reultFile = new File(jsonFilePath); 
-		String resultStr = FileUtils.readFileToString(reultFile);
-		
-		System.out.println(resultStr);
-		String category = JsonPath.from(resultStr).get("store.book[0].category");
-		System.out.println(category);
-	}
+
 
 }
