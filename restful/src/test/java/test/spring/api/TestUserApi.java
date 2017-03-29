@@ -2,97 +2,117 @@ package test.spring.api;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.File;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.List;
 
-import org.apache.commons.httpclient.Cookie;
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpException;
-import org.apache.commons.httpclient.HttpState;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.io.FileUtils;
+import org.apache.http.HttpException;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.HttpClientBuilder;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 
 /** 
- * it comes from http://springinpractice.com/2012/04/08/sending-cookies-with-resttemplate
- * 
+ * demo how to test RESTful API
+ * it used two libs: httpclient and com.jayway.jsonpath 
  * @author justin.wu
  *
  */
 public class TestUserApi {
 	
-	private static String getSessionId() throws HttpException, IOException{
-		HttpClient httpClient = new HttpClient();
-		String url = "http://localhost:8080/vcaps3/SecurityServlet?as_user=robertp";
-		GetMethod getMethod = new GetMethod(url);
-
-		httpClient.executeMethod(getMethod);
+	private CookieStore httpCookieStore;
+	public static String URL_ROOT = "http://localhost:8080/vcaps3";
+	
+	@Before
+	public void setup()  {
+		httpCookieStore = new BasicCookieStore();
+	}	
+	
+	
+	public static void login(CookieStore httpCookieStore, String domainUserName) throws HttpException, IOException{
 		
-		int responseCode = httpClient.executeMethod(getMethod);
-		assertEquals(responseCode, 200); // will automatically follow 302 status and go to redirection page 
+		String url = URL_ROOT+ "/SecurityServlet?as_user=" + domainUserName;
+		System.out.println("url = " + url);
 		
-		byte[] body = getMethod.getResponseBody();
+		HttpClient client = initClient(httpCookieStore);
 		
-		String bodyStr = new String(body);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response = client.execute(request);
+		assertEquals(response.getStatusLine().getStatusCode(), 200); // will automatically follow 302 status and go to redirection page 
+		
+		String bodyStr = getReturn(response);
 		
 		System.out.println("body = " + bodyStr);
 		
-		String sessionId = getSessionIdFromConnection(httpClient);
-		
-		System.out.println("SessionId = " + sessionId);
-		
-		return sessionId;
 		
 
 	}
 	
-	private static String getSessionIdFromConnection(HttpClient httpConn) {
-		HttpState state = httpConn.getState();
-		Cookie[] cookies = state.getCookies();
-		String sessionID = null;
-		for (int c = 0; c < cookies.length; c++) {
-			Cookie k = cookies[c];
-			if (k.getName().equalsIgnoreCase("JSESSIONID")) {
-				sessionID = k.getValue();
-				return sessionID;
-			}
-		}
-		return null;
+	public static void logout(CookieStore httpCookieStore) throws HttpException, IOException{
+		String url = URL_ROOT+ "/logout" ;
+		
+		System.out.println("url = " + url);
+		
+		HttpClient client = initClient(httpCookieStore);
+		
+		HttpGet request = new HttpGet(url);
+		
+		HttpResponse response = client.execute(request);
+		assertEquals(response.getStatusLine().getStatusCode(), 200);  
+
 	}
 	
-	//@Test
+	private static HttpClient initClient(CookieStore httpCookieStore){
+		HttpClient http = null;
+		HttpClientBuilder builder = HttpClientBuilder.create().setDefaultCookieStore(httpCookieStore);
+		http = builder.build();
+		return http;
+	}
+	
+	private static String getReturn(HttpResponse response) throws HttpException, IOException{
+		
+		
+		BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+
+		StringBuffer result = new StringBuffer();
+		String line = "";
+		while ((line = rd.readLine()) != null) {
+			result.append(line);
+		}
+		
+		return result.toString();
+		
+	}
+	
+	@Test
 	public void testUserApi() throws HttpException, IOException{
 		
 		
-		String url ="http://localhost:8080/vcaps3/api/v2/users/all.json";
-		RestTemplate restTemplate = new RestTemplate();
-		
-		HttpHeaders requestHeaders = new HttpHeaders();
+		String url = URL_ROOT +"/api/v2/users/all.json";
 
-		String sessionId = getSessionId();
-		requestHeaders.add("Cookie", "JSESSIONID="+ sessionId );
+		login(httpCookieStore, "robertp");
 		
-		HttpEntity requestEntity = new HttpEntity(null, requestHeaders);
-		ResponseEntity<String> response = restTemplate.exchange(
-		    url,
-		    HttpMethod.GET,
-		    requestEntity,
-		    String.class);
-		HttpStatus status = response.getStatusCode();
+		HttpClient client = HttpClientBuilder.create().setDefaultCookieStore(httpCookieStore).build();
 		
-		System.out.println(status);
+		final HttpGet request = new HttpGet(url);
+		 
+		HttpResponse response = client.execute(request);
+	    assertEquals(response.getStatusLine().getStatusCode(), 200);
+
+		System.out.println(response.getStatusLine().getStatusCode());
 		
-		String body = (String)response.getBody();
+		String body = getReturn(response);
 		
 		System.out.println(body);
 		
@@ -146,6 +166,15 @@ public class TestUserApi {
 
 		assertEquals(category.size(), 1);
 		assertEquals(category.get(0), "reference");
+
+	}
+	
+	@After
+	public void tearDown() throws Exception {
+		
+		// logout
+		logout(httpCookieStore);
+		
 
 	}
 
