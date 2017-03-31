@@ -50,6 +50,7 @@ public class TestUserApi {
 		
 		HttpResponse response = client.execute(request);
 		assertEquals(response.getStatusLine().getStatusCode(), 200); // will automatically follow 302 status and go to redirection page 
+		// will automatically save Http SessionId into  httpCookieStore
 		
 		String bodyStr = getReturn(response);
 		
