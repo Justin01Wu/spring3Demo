@@ -54,7 +54,7 @@ public class KerberosTest {
         System.setProperty("javax.security.auth.useSubjectCredsOnly", "false");
         
         String user = "justin.wu";
-        String password = "tuN31gle";
+        String password = "";
         String loginUrl = URL_ROOT + "/SecurityServlet";
 
         KerberosTest kcd = new KerberosTest();
