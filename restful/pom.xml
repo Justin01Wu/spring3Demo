@@ -139,7 +139,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-war-plugin</artifactId>
-				<version>2.4</version>
+				<version>3.4.0</version>
     			<configuration>
         			<attachClasses>true</attachClasses>
         			<!-- This creates a classes artifact which you can use in the acceptance tests project (restful_test) -->
@@ -149,7 +149,7 @@
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-war-plugin</artifactId>
-				<version>2.4</version>
+				<version>3.4.0</version>
 				<configuration>
 		          <webResources>
 		            <resource>
